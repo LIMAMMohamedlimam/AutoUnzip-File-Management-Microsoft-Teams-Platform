@@ -1,26 +1,28 @@
 from watchdog.events import FileSystemEventHandler
-import zipfile as zp  , os
+from threading import Timer
+from Processingfunct import extract_zip
 
 
-def extract_zip(zip_file, destination_folder):
-     # Create the destination folder if it doesn't exist
-    if not os.path.exists(destination_folder):
-        os.makedirs(destination_folder)
-
-    # Open the ZIP file
-    with zp.ZipFile(zip_file, 'r') as zip_ref:
-        # Extract all files
-        zip_ref.extractall(destination_folder)
 
 class DownloadEventHandler(FileSystemEventHandler):
-    def on_created(self, event):
-        # Check if the added file is a zip file
-        if event.is_directory or not event.src_path.endswith('.zip'):
-            return "not zip file"
-        
-        print(f"Detected new zip file: {event.src_path}")
-        # Define your target directory
-        
-        # Call your function to process the new zip file
-        extract_zip(event.src_path,'/home/mohamed/test_automation')
+    def __init__(self):
+        self.timer = None
+        self.delay = 5
 
+    def handle_file(self,path):
+        if path.endswith('.zip'):
+            print(f"Processing zip file: {path}")
+            extract_zip(path, '/home/mohamed/test_automation')
+        else:
+            print("File is not a zip, ignoring.")
+
+
+    def on_created(self, event):
+        if event.is_directory:
+            return 
+        
+        if self.timer is not None :
+            self.timer.cancel()
+
+        self.timer = Timer(self.delay , self.handle_file , [event.src_path])
+        self.timer.start()
